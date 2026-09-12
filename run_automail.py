@@ -254,6 +254,7 @@ def run_campaign(
     wait_minutes: float,
     subject: str,
     body: str,
+    attachment: str,
     dry_run: bool,
     reset: bool,
     logger: logging.Logger,
@@ -269,17 +270,27 @@ def run_campaign(
     logger.info(f"Batch size     : {batch_size}")
     logger.info(f"Wait minutes   : {wait_minutes}")
     logger.info(f"Subject        : {subject}")
+    logger.info(f"Attachment     : {attachment or 'None'}")
     logger.info(f"Dry run        : {dry_run}")
 
     # ---- Load & validate recipients ----
     recipients = _load_recipients(excel_path)
     total_recipients = len(recipients)
 
+    # ---- Validate attachment if provided ----
+    if attachment:
+        if not os.path.exists(attachment):
+            print(f"\n[ERROR] Attachment file not found: '{attachment}'")
+            logger.error(f"Attachment not found: {attachment}")
+            sys.exit(1)
+        logger.info(f"Attachment verified: {attachment}")
+
     print(f"\n  Total emails in Excel : {total_recipients}")
     print(f"  Batch size            : {batch_size}")
     print(f"  Wait time             : {wait_minutes} minute(s)")
     print(f"  Subject               : {subject}")
-    print(f"  Body                  : {body}\n")
+    print(f"  Body                  : {body}")
+    print(f"  Attachment            : {attachment if attachment else 'None'}\n")
 
     logger.info(f"Total recipients loaded: {total_recipients}")
 
@@ -356,7 +367,8 @@ def run_campaign(
         logger.info(f"Attempting to send to: {recipient}")
 
         try:
-            result = sender.send(recipient, subject, {})
+            result = sender.send(recipient, subject, {},
+                                 attachment_path=attachment if attachment else None)
         except Exception as exc:
             result = {"err": str(exc)}
 
@@ -449,6 +461,8 @@ def main():
                         help="Email subject (overrides config)")
     parser.add_argument("--body",
                         help="Email body text (overrides config)")
+    parser.add_argument("--attachment",
+                        help="Path to attachment file, e.g. assets/pic1.png (overrides config)")
     parser.add_argument("--dry-run", action="store_true",
                         help="Show what would be sent without sending")
     parser.add_argument("--reset", action="store_true",
@@ -470,6 +484,7 @@ def main():
         subject = args.subject or cfg.get("email", "subject",
                                           fallback="Email Automation Test")
         body = args.body or cfg.get("email", "body", fallback="hello")
+        attachment = args.attachment or cfg.get("email", "attachment", fallback="").strip() or None
     except Exception as exc:
         print(f"\n[ERROR] Could not read configuration: {exc}")
         sys.exit(1)
@@ -500,6 +515,7 @@ def main():
         wait_minutes=wait_minutes,
         subject=subject,
         body=body,
+        attachment=attachment,
         dry_run=args.dry_run,
         reset=args.reset,
         logger=logger,

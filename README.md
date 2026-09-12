@@ -1,19 +1,20 @@
 # 📧 Email Automation Software
 
-> A configurable batch email automation system built with Python — send emails in smart batches with countdown timers, Excel-based recipient lists, dry-run previews, and campaign state management.
+> A powerful, configurable batch email automation system built with Python — send emails in smart batches with live countdown timers, Excel recipient lists, image & file attachment support, dry-run previews, and robust campaign state management.
 
 ---
 
 ## ✨ Features
 
-- 📋 **Excel-based recipients** — load email addresses from `.xlsx` files
-- 🔁 **Batch sending** — send N emails, pause, then continue automatically
-- ⏱️ **Live countdown timer** — watch the break timer tick down in real time
-- 🧪 **Dry-run mode** — preview exactly what will be sent without sending anything
-- 💾 **Campaign state** — resumes safely if interrupted; no duplicate sends
-- ✅ **Correct counting** — only successful sends count toward the batch limit
-- 🔒 **Secure config** — credentials stay in `config.cfg` (gitignored)
-- 🖥️ **Clean CLI** — all settings overridable from the command line
+- 📋 **Excel-based recipients** — load email addresses dynamically from `.xlsx` spreadsheets
+- 📎 **Attachment & Image Support** — attach images (`.png`, `.jpg`), documents, or PDFs to every outgoing email
+- 🔁 **Batch sending** — send N emails, pause, then continue automatically to avoid spam filters and rate limits
+- ⏱️ **Live countdown timer** — watch the break timer tick down second-by-second in your terminal
+- 🧪 **Dry-run mode** — preview batches and attachment paths without sending any actual emails
+- 💾 **Campaign state management** — resumes safely from where it left off if interrupted; zero duplicate sends
+- ✅ **Accurate counting** — only successful sends count toward the batch limit; failures are logged and retried/skipped cleanly
+- 🔒 **Secure configuration** — personal credentials stay safely in `config.cfg` (gitignored)
+- 🖥️ **CLI overrides** — override any configuration setting directly from command-line arguments
 
 ---
 
@@ -22,18 +23,19 @@
 ```
 Email automation/
 │
-├── run_automail.py              ← Main script (entry point)
+├── run_automail.py              ← Main script (entry point with batching & attachment support)
 ├── config.cfg                   ← Your credentials & settings (gitignored)
 ├── config.cfg.example           ← Template — copy this to config.cfg
 ├── requirements.txt             ← Python dependencies
-├── template.html                ← Optional HTML email template
-├── contacts.csv                 ← Legacy contacts (not used in batch mode)
+│
+├── assets/                      ← Folder for email attachments (images, PDFs, documents)
+│   └── pic1.png                 ← Example image attachment
 │
 ├── sheets/
 │   └── test_email_recipients.xlsx   ← Excel file with recipient emails
 │
 ├── state/
-│   └── email_campaign_state.json    ← Auto-created progress file (gitignored)
+│   └── email_campaign_state.json    ← Auto-created progress tracker (gitignored)
 │
 └── pyautomail/                  ← Bundled PyAutoMail library
     └── pyautomail/
@@ -49,6 +51,7 @@ Email automation/
 ```bash
 cp config.cfg.example config.cfg
 ```
+*(On Windows PowerShell, you can use `copy config.cfg.example config.cfg`)*
 
 ### 2. Edit `config.cfg`
 
@@ -60,7 +63,7 @@ is_test = False
 
 [account]
 user = your_email@gmail.com
-password = your_app_password_here   # Gmail App Password (16 chars)
+password = your_app_password_here   # Gmail App Password (16 chars, no spaces required)
 
 [log]
 file-path = email_sender.log
@@ -68,21 +71,26 @@ level = 20
 
 [batch]
 batch_size = 3        # How many emails to send per batch
-wait_minutes = 5      # How many minutes to wait between batches
+wait_minutes = 2      # How many minutes to wait between batches
 
 [email]
 subject = Email Automation Test
 body = hello
 excel_file = sheets/test_email_recipients.xlsx
+attachment = assets/pic1.png         # Optional: path to image or document attachment
 ```
 
-> **Gmail App Password** — Go to [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) to generate one. Enable 2-Factor Authentication first.
+> **🔑 How to generate a Gmail App Password:**
+> 1. Go to your Google Account: [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
+> 2. Ensure 2-Step Verification is turned **ON**
+> 3. Create an App Name (e.g. `Email Automation`)
+> 4. Copy the generated 16-character password into `password` in `config.cfg`
 
 ---
 
 ## 📊 Excel File Format
 
-Create your recipient list in `sheets/` as an `.xlsx` file with a column named **`email`**:
+Place your recipient list in `sheets/` as an `.xlsx` file. Ensure there is a column named **`email`**:
 
 | email |
 |---|
@@ -90,31 +98,32 @@ Create your recipient list in `sheets/` as an `.xlsx` file with a column named *
 | bob@example.com |
 | carol@example.com |
 
-- Blank cells are skipped automatically
-- Duplicate addresses are de-duplicated
-- Invalid email formats are skipped with a warning
+- Empty rows or blank cells are automatically ignored
+- Duplicate email addresses are de-duplicated
+- Invalid email addresses are reported with a warning and skipped
 
 ---
 
-## 🚀 Installation
+## 🚀 Installation & Setup
 
 ```bash
-# 1. Install Python dependencies
+# 1. Install required Python packages
 pip install pandas openpyxl
 
-# 2. Install the bundled PyAutoMail library
+# 2. Install the bundled PyAutoMail library in editable mode
 pip install -e pyautomail/
 
-# 3. Copy and fill in your config
-cp config.cfg.example config.cfg
-# → Edit config.cfg with your Gmail credentials
+# 3. Create your local config file
+copy config.cfg.example config.cfg
+# -> Fill in your email and App Password in config.cfg
 ```
 
 ---
 
 ## 🖥️ Usage
 
-### Dry Run — preview without sending
+### 1. Dry Run — preview without sending emails
+Verify your recipient list, batches, and attachment without sending anything:
 ```bash
 python run_automail.py --dry-run
 ```
@@ -124,39 +133,63 @@ python run_automail.py --dry-run
 [DRY RUN] - No emails will be sent
 ====================================================
 
+  Total emails in Excel : 6
+  Batch size            : 3
+  Wait time             : 2.0 minute(s)
+  Subject               : Email Automation Test
+  Attachment            : assets/pic1.png
+
   Batch 1
   -------
     1. alice@example.com
     2. bob@example.com
     3. carol@example.com
 
-    --> Would wait 5.0 minute(s) before next batch
+    --> Would wait 2.0 minute(s) before next batch
+
+  Batch 2
+  -------
+    4. dave@example.com
+    5. eve@example.com
+    6. frank@example.com
 
   [DRY RUN] No emails were sent. No waiting occurred.
 ```
 
-### Real Send — uses config.cfg defaults
+---
+
+### 2. Live Send — start the automated campaign
 ```bash
 python run_automail.py
 ```
 
-### Fresh Start — ignore previous campaign progress
+### 3. Fresh Restart — clear previous state
+If you stopped the software previously and want to start over from the very first recipient:
 ```bash
 python run_automail.py --reset
 ```
 
-### Override settings from CLI
+### 4. Sending with Custom Attachment via CLI
+You can specify or override the attachment at runtime:
+```bash
+python run_automail.py --attachment assets/pic1.png
+```
+
+### 5. Override Any Settings from CLI
 ```bash
 python run_automail.py \
-  --excel sheets/my_list.xlsx \
-  --batch-size 10 \
-  --wait-minutes 15 \
-  --subject "Monthly Newsletter"
+  --excel sheets/my_recipients.xlsx \
+  --batch-size 5 \
+  --wait-minutes 10 \
+  --subject "Special Update" \
+  --attachment assets/brochure.pdf
 ```
 
 ---
 
-## 📺 Live Console Output
+## 📺 Live Console Preview
+
+When running, the software displays formatted live progress and a real-time countdown timer between batches:
 
 ```
 ====================================================
@@ -165,9 +198,10 @@ EMAIL AUTOMATION STARTED
 
   Total emails in Excel : 6
   Batch size            : 3
-  Wait time             : 5.0 minute(s)
+  Wait time             : 2.0 minute(s)
   Subject               : Email Automation Test
   Body                  : hello
+  Attachment            : assets/pic1.png
 
   Starting campaign...
 
@@ -176,10 +210,10 @@ EMAIL AUTOMATION STARTED
   3 email sent [OK] -> carol@example.com
 ====================================================
   3 EMAILS SENT
-  Taking a break for 5.0 minute(s)...
+  Taking a break for 2.0 minute(s)...
 ====================================================
-    Waiting: 05:00
-    Waiting: 04:59
+    Waiting: 02:00
+    Waiting: 01:59
     ...
     Waiting: 00:01
 ====================================================
@@ -207,107 +241,82 @@ EMAIL AUTOMATION STARTED
 
 ## 🔢 How Batch Counting Works
 
-The system counts **successful sends only**. Failed emails do not consume a batch slot.
+The system increments batch counters **only upon confirmed successful delivery**:
 
 ```
-batch_sent = 0   ← resets after each batch
-total_sent = 0   ← cumulative, never resets
+batch_sent = 0   ← resets to 0 after each batch pause
+total_sent = 0   ← cumulative counter across all batches
 
 For each recipient:
-    → attempt send
-    → if FAILED: log it, skip (do NOT increment)
-    → if SUCCESS:
+    → Attempt SMTP delivery (with attachment if configured)
+    → If FAILED:
+        Log error, do NOT increment batch_sent
+    → If SUCCESS:
         total_sent += 1
         batch_sent += 1
-        if batch_sent >= batch_size AND more remain:
-            start countdown
+        Record progress to state/email_campaign_state.json
+        If batch_sent >= batch_size AND more recipients remain:
+            Trigger countdown timer for wait_minutes
             batch_sent = 0
 ```
 
-**Example with a failure:**
-```
-1 email sent [OK] -> alice@example.com
-2 email FAILED [!] -> bad-address          ← not counted
-2 email sent [OK] -> bob@example.com       ← still #2
-3 email sent [OK] -> carol@example.com
-====================================================
-  3 EMAILS SENT — Taking a break...
-```
-
 ---
 
-## ⚙️ CLI Reference
+## ⚙️ CLI Options Reference
 
 | Argument | Default | Description |
 |---|---|---|
-| `--config` | `config.cfg` | Path to config file |
-| `--excel` | from config | Path to Excel recipients file |
-| `--batch-size` | from config | Emails per batch |
-| `--wait-minutes` | from config | Minutes between batches |
-| `--subject` | from config | Email subject line |
-| `--body` | from config | Email body text |
-| `--dry-run` | off | Preview only, no sending |
-| `--reset` | off | Clear saved state, start fresh |
+| `--config` | `config.cfg` | Path to custom `.cfg` configuration file |
+| `--excel` | from config | Path to Excel spreadsheet containing recipients |
+| `--batch-size` | from config | Number of emails to send before pausing |
+| `--wait-minutes` | from config | Pause duration in minutes between batches |
+| `--subject` | from config | Subject line for outgoing emails |
+| `--body` | from config | Plain text body content |
+| `--attachment` | from config | Path to attachment file (e.g. `assets/pic1.png`, PDF, etc.) |
+| `--dry-run` | `False` | Simulate the run without sending or waiting |
+| `--reset` | `False` | Clear saved campaign state and start from recipient 1 |
 
-> CLI arguments always override `config.cfg` values.
+> 💡 *Command-line options always take precedence over values in `config.cfg`.*
 
 ---
 
-## 📁 Changing Settings
+## 🔧 Quick Configuration Reference
 
-All key values live in `config.cfg` — **no code changes needed**.
+All settings can be permanently adjusted in `config.cfg`:
 
-| What to change | Setting |
+| What you want to change | Location in `config.cfg` |
 |---|---|
-| Emails per batch | `batch_size` in `[batch]` |
-| Wait time | `wait_minutes` in `[batch]` |
-| Input Excel file | `excel_file` in `[email]` |
-| Email subject | `subject` in `[email]` |
-| Email body | `body` in `[email]` |
-| SMTP server | `host` / `port` in `[smtp]` |
+| Number of emails per batch | `batch_size` under `[batch]` |
+| Break duration between batches | `wait_minutes` under `[batch]` |
+| Excel recipient list | `excel_file` under `[email]` |
+| Email subject | `subject` under `[email]` |
+| Email body text | `body` under `[email]` |
+| Image or file attachment | `attachment` under `[email]` |
+| Gmail address | `user` under `[account]` |
+| Gmail App Password | `password` under `[account]` |
+| SMTP Host & Port | `host` / `port` under `[smtp]` |
 
 ---
 
-## 🔒 Security
+## 🔒 Security & Privacy
 
-- `config.cfg` is **gitignored** — credentials are never committed
-- `state/*.json` is **gitignored** — campaign progress is never committed
-- Never log passwords — the logger only records email addresses and statuses
-- Use **Gmail App Passwords**, not your main Gmail password
-
-> ⚠️ If you ever accidentally commit credentials, revoke them immediately at [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) and generate a new one.
-
----
-
-## 📦 Dependencies
-
-```
-pandas       — Excel file reading
-openpyxl     — .xlsx engine for pandas
-jinja2       — Email template rendering (via PyAutoMail)
-```
-
-Install with:
-```bash
-pip install pandas openpyxl
-```
+- `config.cfg` is added to `.gitignore` — your Gmail username and App Password will never be pushed to git.
+- `state/*.json` is gitignored to avoid leaking recipient progress or states.
+- `*.log` files are gitignored.
+- Passwords are never written to log files.
+- Always use Google **App Passwords** rather than your main Google account password.
 
 ---
 
-## 🧾 Logs
+## 📦 Requirements
 
-Every campaign writes to `email_sender.log` (gitignored):
-
-```
-[2026-09-12 12:09:29 - INFO (EmailSender)] : Logged in.
-[2026-09-12 12:09:29 - INFO (BatchRunner)] : Campaign sending started.
-[2026-09-12 12:09:31 - INFO (BatchRunner)] : [1/6] Sent to alice@example.com
-[2026-09-12 12:09:33 - INFO (BatchRunner)] : Batch of 3 complete. Waiting 5 minute(s).
-[2026-09-12 12:14:33 - INFO (BatchRunner)] : Batch wait finished. Resuming sending.
+```txt
+pandas>=2.0.0
+openpyxl>=3.1.0
 ```
 
 ---
 
 ## 📄 License
 
-MIT — free to use and modify.
+This project is licensed under the MIT License.

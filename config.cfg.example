@@ -19,3 +19,4 @@ wait_minutes = 5
 subject = Email Automation Test
 body = hello
 excel_file = sheets/test_email_recipients.xlsx
+attachment =
