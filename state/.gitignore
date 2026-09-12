@@ -1,0 +1,3 @@
+# Exclude campaign state files from version control.
+# These contain transient progress data and may contain email addresses.
+*.json

@@ -1,0 +1,21 @@
+[smtp]
+host = smtp.gmail.com
+port = 465
+is_test = True
+
+[account]
+user = your_email@gmail.com
+password = your_app_password_here
+
+[log]
+file-path = email_sender.log
+level = 20
+
+[batch]
+batch_size = 3
+wait_minutes = 5
+
+[email]
+subject = Email Automation Test
+body = hello
+excel_file = sheets/test_email_recipients.xlsx

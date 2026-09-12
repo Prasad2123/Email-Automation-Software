@@ -1,0 +1,14 @@
+.idea
+pdfs/*
+contents*
+
+*.log
+*.pyc
+*.db
+
+*.egg-info/
+build/
+_build/
+dist/
+
+.pytest_cache/
